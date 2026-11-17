@@ -1,205 +1,109 @@
-# 🚀 AI Lead Generation & CRM Automation (n8n)
+# 🚀 AI Lead Generation & CRM Automation
 
-An automated lead intake, qualification, and scoring pipeline built with **[n8n](https://n8n.io/)**. This workflow captures incoming leads via an HTTP webhook, validates contact information, calculates an explainable lead qualification score (0–100), assigns priority levels (`HOT`, `WARM`, `COLD`), and returns actionable recommendations instantly.
+<p align="center">
+  <img src="https://img.shields.io/badge/Workflow-n8n-FF6584?style=for-the-badge&logo=n8n&logoColor=white" alt="n8n" />
+  <img src="https://img.shields.io/badge/Type-Lead%20Scoring-blue?style=for-the-badge" alt="Lead Scoring" />
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge" alt="Production Ready" />
+  <img src="https://img.shields.io/badge/License-MIT-orange?style=for-the-badge" alt="License" />
+</p>
 
----
-
-## 📌 Table of Contents
-
-- [Overview](#-overview)
-- [Architecture & Flow](#-architecture--flow)
-- [Features](#-features)
-- [Lead Scoring Matrix](#-lead-scoring-matrix)
-- [API Reference](#-api-reference)
-  - [Webhook Endpoint](#webhook-endpoint)
-  - [Example Request](#example-request)
-  - [Example Responses](#example-responses)
-  - [Testing with cURL](#testing-with-curl)
-- [Installation & Setup](#-installation--setup)
-- [How It Works (Node Breakdown)](#-how-it-works-node-breakdown)
-- [Future Enhancements & AI Integrations](#-future-enhancements--ai-integrations)
-- [License](#-license)
+A lightweight, high-performance **n8n automation** that instantly captures website leads, validates contact details, calculates an intelligent qualification score, and routes actionable insights to your sales pipeline.
 
 ---
 
-## 🔍 Overview
-
-Managing incoming leads manually leads to delayed response times and lost sales opportunities. This workflow acts as the front-line automation layer between your website/portfolio contact forms and your CRM or sales team:
-
-1. **Captures** incoming submissions via a REST webhook.
-2. **Validates** crucial contact information (`name`, valid `email`).
-3. **Scores** the lead in real-time across budget, timeline urgency, company presence, and requirements depth.
-4. **Categorizes** the lead into `HOT`, `WARM`, or `COLD` tiers.
-5. **Returns** a structured JSON response with clear next-step recommendations for sales reps or automated follow-up systems.
-
----
-
-## 🏗️ Architecture & Flow
+## 🧭 System Flow & Architecture
 
 ```mermaid
-flowchart LR
-    A["🌐 Web Form / Client Portal"] -->|POST JSON| B["📥 Lead Intake Webhook"]
-    B --> C["⚙️ Validate & Score Lead"]
-    C -->|Valid Lead| D["📊 Calculate Score & Priority"]
-    C -->|Invalid Data| E["❌ Validation Error"]
-    D --> F["📤 Return Lead Result"]
-    E --> F
-    F -->|HTTP 200 JSON| A
+flowchart TD
+    %% Styling
+    classDef input fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+    classDef process fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
+    classDef output fill:#e8f8f5,stroke:#26a69a,stroke-width:2px,color:#004d40;
+    classDef ext fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#4a148c;
+
+    Form["🌐 Web Form / Landing Page"]:::input
+    Webhook["📥 1. Lead Intake Webhook"]:::input
+    Validate["⚙️ 2. Validate & Score Engine"]:::process
+    Response["📤 3. Instant API Response"]:::output
+
+    Form -->|POST JSON| Webhook
+    Webhook --> Validate
+    Validate -->|Score & Priority| Response
+    Response -->|JSON Result| Form
+
+    %% Integration Ecosystem
+    subgraph Ecosystem ["🔌 Optional Next Steps & Integrations"]
+        LLM["🤖 AI Summaries (OpenAI / Gemini)"]:::ext
+        CRM["📊 CRM Sync (HubSpot / Notion / Airtable)"]:::ext
+        Alerts["💬 Team Alerts (Slack / Email)"]:::ext
+    end
+
+    Validate -.-> LLM
+    Validate -.-> CRM
+    Validate -.-> Alerts
 ```
 
 ---
 
-## ✨ Features
+## ⚡ How It Works in 3 Steps
 
-- **⚡ Instant Webhook Ingestion:** Accepts JSON payloads from any frontend framework, landing page builder (Webflow, WordPress, Framer), or custom API.
-- **🛡️ Input Validation & Sanitization:** Verifies required fields and email syntax before processing.
-- **🎯 Transparent Scoring Engine:** Evaluates leads using deterministic, explainable weights without black-box confusion.
-- **🏷️ Automated Prioritization:**
-  - 🔥 **HOT (Score ≥ 70):** High-budget, urgent timeline. Recommended action: *Immediate discovery call.*
-  - ⚡ **WARM (Score 40–69):** Qualified prospect with moderate requirements. Recommended action: *Personalized 24h follow-up.*
-  - ❄️ **COLD (Score < 40):** Low budget or vague scope. Recommended action: *Nurture via email campaign.*
-- **🧩 AI-Ready Architecture:** Designed to easily snap in Large Language Model (LLM) nodes for sentiment analysis, pitch draft generation, and lead enrichment.
+| Step | Component | Description |
+| :---: | :--- | :--- |
+| **1** | **Ingest** | Captures incoming lead requests from any contact form via a secure webhook. |
+| **2** | **Score** | Evaluates project budget, urgency, company name, and requirements to generate a **0–100 score**. |
+| **3** | **Route** | Flags the lead as **`HOT`**, **`WARM`**, or **`COLD`** with immediate next-step guidance. |
 
 ---
 
-## 📊 Lead Scoring Matrix
+## 🎯 Lead Priority Matrix
 
-The workflow evaluates each lead across 4 key dimensions with a maximum score of **100 points**:
-
-| Dimension | Criteria | Points Added |
-| :--- | :--- | :--- |
-| **Budget** | ≥ \$10,000 | **+35 pts** |
-| | \$5,000 – \$9,999 | **+25 pts** |
-| | > \$0 | **+10 pts** |
-| **Timeline** | Immediate / within a week | **+30 pts** |
-| | Within a month | **+20 pts** |
-| | Any specified timeline | **+10 pts** |
-| **Company** | Company name provided | **+15 pts** |
-| **Project Scope** | Detailed description (≥ 80 characters) | **+20 pts** |
-| | Basic description (≥ 20 characters) | **+10 pts** |
+```
+   Score Range        Priority          Recommended Action
+ ┌──────────────┬──────────────────┬──────────────────────────────────────────┐
+ │   70 – 100   │   🔥  HOT        │   Call immediately & book discovery call  │
+ │   40 – 69    │   ⚡  WARM       │   Send personalized follow-up in 24 hrs   │
+ │    0 – 39    │   ❄️  COLD       │   Enroll in long-term nurture sequence    │
+ └──────────────┴──────────────────┴──────────────────────────────────────────┘
+```
 
 ---
 
-## 📡 API Reference
+## 🔌 APIs & Integrations Required
 
-### Webhook Endpoint
-
+### 1. Inbound Webhook (Core)
 - **Method:** `POST`
-- **Path:** `/webhook/portfolio-lead-intake` *(production)* or `/webhook-test/portfolio-lead-intake` *(testing)*
-
-### Example Request
-
-```json
-{
-  "name": "Jane Doe",
-  "email": "jane.doe@enterprise.com",
-  "company": "Acme Innovations Ltd.",
-  "budget": 12500,
-  "timeline": "immediate",
-  "message": "We need to automate our inbound lead generation workflow and integrate it into our HubSpot CRM within the next two weeks."
-}
-```
-
-### Example Responses
-
-#### ✅ High Priority Lead (`HOT`):
-```json
-{
-  "success": true,
-  "workflow": "AI Lead Generation & CRM",
-  "lead": {
+- **Path:** `/webhook/portfolio-lead-intake`
+- **Payload Schema:**
+  ```json
+  {
     "name": "Jane Doe",
-    "email": "jane.doe@enterprise.com",
-    "company": "Acme Innovations Ltd.",
-    "message": "We need to automate our inbound lead generation workflow and integrate it into our HubSpot CRM within the next two weeks.",
-    "budget": 12500,
-    "timeline": "immediate"
-  },
-  "qualification": {
-    "score": 100,
-    "priority": "HOT",
-    "reasons": [
-      "Budget is 10,000 or above",
-      "Urgent implementation timeline",
-      "Company information provided",
-      "Detailed business requirement provided"
-    ]
-  },
-  "recommendedAction": "Contact immediately and schedule a discovery call.",
-  "processedAt": "2026-11-17T23:00:00.000Z",
-  "note": "This starter workflow uses explainable rule-based scoring. Connect an LLM node to add AI-generated summaries or enrichment."
-}
-```
-
-#### ❌ Missing Required Fields:
-```json
-{
-  "success": false,
-  "workflow": "AI Lead Generation & CRM",
-  "error": "A valid name and email are required.",
-  "received": {
-    "name": "",
-    "email": "invalid-email"
+    "email": "jane@example.com",
+    "company": "Acme Corp",
+    "budget": 10000,
+    "timeline": "immediate",
+    "message": "Looking for n8n CRM automation."
   }
-}
-```
+  ```
 
-### Testing with cURL
+### 2. Connected & Extensible APIs
 
-```bash
-curl -X POST "http://localhost:5678/webhook-test/portfolio-lead-intake" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Alex Smith",
-    "email": "alex@techstart.io",
-    "company": "TechStart Inc",
-    "budget": 7500,
-    "timeline": "within 2 weeks",
-    "message": "Looking for automated CRM pipeline integrations and n8n consulting."
-  }'
-```
+| Service | Category | Purpose | Status |
+| :--- | :--- | :--- | :--- |
+| **Webhook API** | Core | Ingests lead submissions from web forms | `Included` |
+| **OpenAI / Gemini API** | AI & LLM | Generates executive summaries & pitch drafts | `Ready to connect` |
+| **HubSpot / Airtable API** | CRM | Auto-creates contacts, deals, and notes | `Ready to connect` |
+| **Slack / Resend API** | Notifications | Real-time alerts for high-value `HOT` leads | `Ready to connect` |
 
 ---
 
-## ⚙️ Installation & Setup
+## 🚀 Quick Start
 
-### 1. Prerequisites
-- An active instance of **[n8n](https://n8n.io/)** (Cloud, Docker, or Desktop).
-
-### 2. Import Workflow into n8n
-1. Open your n8n workspace.
-2. In the top-right corner, click **Add Workflow** (`+`) or the **...** menu.
-3. Select **Import from File**.
-4. Choose [`AI_Lead_Generation_CRM.json`](./AI_Lead_Generation_CRM.json).
-
-### 3. Activate the Webhook
-1. Open the **Lead Intake Webhook** node.
-2. Copy the **Production URL** (or **Test URL** for testing).
-3. Toggle the workflow to **Active** in the top navigation bar.
-
----
-
-## 🧩 How It Works (Node Breakdown)
-
-| Node | Type | Function |
-| :--- | :--- | :--- |
-| **Lead Intake Webhook** | `n8n-nodes-base.webhook` | Receives incoming POST requests and captures the payload. Configured to respond using a downstream response node. |
-| **Validate & Score Lead** | `n8n-nodes-base.code` | JavaScript node executing validation checks, calculating the score from budget/timeline/company/message data, and assigning priority tiers. |
-| **Return Lead Result** | `n8n-nodes-base.respondToWebhook` | Returns the scored object and recommendations directly back to the HTTP client with status code `200`. |
-
----
-
-## 🔮 Future Enhancements & AI Integrations
-
-This starter template provides the solid foundation to expand into a fully autonomous sales agent:
-
-- [ ] **AI Summaries & Enrichment:** Add an OpenAI, Anthropic, or Gemini node to analyze client websites and generate executive briefing summaries.
-- [ ] **CRM Synchronization:** Push qualified leads automatically into HubSpot, Salesforce, Notion, or Airtable.
-- [ ] **Instant Team Notifications:** Alert sales reps on Slack, Discord, or Microsoft Teams whenever a `HOT` lead arrives.
-- [ ] **Automated Email Outreach:** Draft and dispatch personalized reply emails using Gmail or SendGrid based on lead priority.
+1. **Import:** In your n8n workspace, click **Add Workflow** > **Import from File** and select [`AI_Lead_Generation_CRM.json`](./AI_Lead_Generation_CRM.json).
+2. **Activate:** Open the **Lead Intake Webhook** node and switch the workflow toggle to **Active**.
+3. **Connect:** Point your website form's `POST` request to the generated webhook URL.
 
 ---
 
 ## 📄 License
 
-This project is open-source and available under the [MIT License](LICENSE).
+Distributed under the [MIT License](LICENSE).
