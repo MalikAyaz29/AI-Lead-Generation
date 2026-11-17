@@ -1,0 +1,82 @@
+{
+  "name": "01 - AI Lead Generation & CRM (Starter)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-lead-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "lead-webhook",
+      "name": "Lead Intake Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const incoming = $input.first().json;\nconst lead = incoming.body ?? incoming;\n\nconst name = String(lead.name ?? '').trim();\nconst email = String(lead.email ?? '').trim().toLowerCase();\nconst company = String(lead.company ?? '').trim();\nconst message = String(lead.message ?? '').trim();\nconst budget = Number(lead.budget ?? 0);\nconst timeline = String(lead.timeline ?? '').toLowerCase();\n\nif (!name || !email || !email.includes('@')) {\n  return [{ json: {\n    success: false,\n    workflow: 'AI Lead Generation & CRM',\n    error: 'A valid name and email are required.',\n    received: { name, email }\n  }}];\n}\n\nlet score = 0;\nconst reasons = [];\n\nif (budget >= 10000) { score += 35; reasons.push('Budget is 10,000 or above'); }\nelse if (budget >= 5000) { score += 25; reasons.push('Budget is 5,000 or above'); }\nelse if (budget > 0) { score += 10; reasons.push('Budget provided'); }\n\nif (timeline.includes('immediate') || timeline.includes('week')) {\n  score += 30; reasons.push('Urgent implementation timeline');\n} else if (timeline.includes('month')) {\n  score += 20; reasons.push('Implementation expected within a month');\n} else if (timeline) {\n  score += 10; reasons.push('Timeline provided');\n}\n\nif (company) { score += 15; reasons.push('Company information provided'); }\nif (message.length >= 80) { score += 20; reasons.push('Detailed business requirement provided'); }\nelse if (message.length >= 20) { score += 10; reasons.push('Requirement details provided'); }\n\nscore = Math.min(score, 100);\nconst priority = score >= 70 ? 'HOT' : score >= 40 ? 'WARM' : 'COLD';\n\nreturn [{ json: {\n  success: true,\n  workflow: 'AI Lead Generation & CRM',\n  lead: { name, email, company, message, budget, timeline },\n  qualification: { score, priority, reasons },\n  recommendedAction: priority === 'HOT'\n    ? 'Contact immediately and schedule a discovery call.'\n    : priority === 'WARM'\n      ? 'Send a personalized follow-up within 24 hours.'\n      : 'Add to a long-term nurturing campaign.',\n  processedAt: new Date().toISOString(),\n  note: 'This starter workflow uses explainable rule-based scoring. Connect an LLM node to add AI-generated summaries or enrichment.'\n}}];"
+      },
+      "id": "lead-score",
+      "name": "Validate & Score Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "lead-response",
+      "name": "Return Lead Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        780,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Lead Intake Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Score Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Score Lead": {
+      "main": [
+        [
+          {
+            "node": "Return Lead Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
